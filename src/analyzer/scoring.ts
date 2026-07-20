@@ -11,14 +11,14 @@ export interface ScoringFactors {
 
 /**
  * Calculates a deterministic business score out of 100 based on the presence of key factors.
- * Scoring factors:
  * - US or UK +25
  * - Business email +15
- * - Selling products +20
+ * - Selling products +10
  * - Recent uploads (within 45 days) +10
- * - Newsletter +10
- * - Paid community (inferred from products/tech) +10
- * - SaaS (inferred from products/tech) +20
+ * - E-commerce / Physical Products +15
+ * - B2B / Enterprise / Agency +20
+ * - SaaS +20
+ * - Penalize Course/Templates -30
  */
 export function calculateBusinessScore(factors: ScoringFactors, aiBusinessType: string): number {
   let score = 0;
@@ -33,9 +33,9 @@ export function calculateBusinessScore(factors: ScoringFactors, aiBusinessType: 
     score += 15;
   }
 
-  // 3. Selling Products (+20)
+  // 3. Selling Products (+10)
   if (factors.productsSold.length > 0) {
-    score += 20;
+    score += 10;
   }
 
   // 4. Recent Uploads (+10)
@@ -47,36 +47,36 @@ export function calculateBusinessScore(factors: ScoringFactors, aiBusinessType: 
     score += 10;
   }
 
-  // 5. Newsletter (+10)
-  if (factors.newsletter) {
-    score += 10;
-  }
-
-  // Helper arrays for inferring Paid Community and SaaS
   const lowerProducts = factors.productsSold.map(p => p.toLowerCase());
   const lowerTech = factors.technologies.map(t => t.toLowerCase());
   const lowerBusinessType = (aiBusinessType || '').toLowerCase();
 
-  // 6. Paid Community (+10)
-  // Check if Skool, Circle, Discord, or keywords are present
-  const hasCommunity = 
-    lowerTech.includes('skool') || 
-    lowerTech.includes('circle') || 
-    lowerTech.includes('discord') ||
-    lowerProducts.some(p => p.includes('community') || p.includes('membership')) ||
-    lowerBusinessType.includes('community');
-
-  if (hasCommunity) {
-    score += 10;
+  // 5. E-commerce / Physical Products (+15)
+  const hasEcommerce = lowerProducts.some(p => p.includes('e-commerce') || p.includes('store') || p.includes('physical'));
+  if (hasEcommerce || lowerTech.includes('shopify')) {
+    score += 15;
   }
 
-  // 7. SaaS (+20)
+  // 6. B2B / Enterprise / Agency (+20)
+  const hasB2B = lowerBusinessType.includes('b2b') || lowerBusinessType.includes('enterprise') || lowerBusinessType.includes('agency');
+  if (hasB2B) {
+    score += 20;
+  }
+
+  // 7. SaaS / Software (+20)
   const hasSaaS = 
     lowerProducts.some(p => p.includes('saas') || p.includes('software')) ||
-    lowerBusinessType.includes('saas');
+    lowerBusinessType.includes('saas') ||
+    lowerBusinessType.includes('tech');
 
   if (hasSaaS) {
     score += 20;
+  }
+
+  // 8. Penalize Low-ticket info products (-30)
+  const hasLowTicket = lowerProducts.some(p => p.includes('template') || p.includes('course') || p.includes('pdf'));
+  if (hasLowTicket && !hasSaaS && !hasB2B && !hasEcommerce) {
+    score -= 30;
   }
 
   // Cap at 100

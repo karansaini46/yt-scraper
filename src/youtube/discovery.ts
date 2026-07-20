@@ -4,19 +4,16 @@ import { logger } from '../utils/logger';
 import { Channel } from '@prisma/client';
 
 export const SEARCH_KEYWORDS = [
-  "AI",
-  "ChatGPT",
-  "Programming",
-  "Next.js",
-  "SaaS",
-  "Startup",
-  "Productivity",
-  "Notion",
-  "Marketing",
-  "Automation",
-  "Newsletter",
-  "Creator Business",
-  "Online Course"
+  "B2B SaaS",
+  "E-commerce Strategy",
+  "Real Estate Investing",
+  "Fintech",
+  "Healthtech",
+  "Enterprise Software",
+  "Logistics Business",
+  "Manufacturing Tech",
+  "Startup Funding",
+  "Agency Growth"
 ];
 
 // Define a type for the data we collect before saving to DB

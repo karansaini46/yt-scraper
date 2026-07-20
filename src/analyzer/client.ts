@@ -43,11 +43,11 @@ const responseSchema = {
       items: {
         type: Type.STRING,
       },
-      description: "List of custom software opportunities that could benefit this business (e.g., AI chatbot, Course platform, CRM, Analytics dashboard, Membership portal, Email automation, Internal admin panel, Sponsorship dashboard).",
+      description: "List of high-ticket custom software opportunities (e.g., Enterprise CRM, Custom Client Portal, AI automation suite, Headless E-commerce, Inventory Management). Do not suggest basic tools like Notion or Kajabi.",
     },
     outreachSentence: {
       type: Type.STRING,
-      description: "A highly personalized first sentence for a cold outreach email based on their specific niche and business model.",
+      description: "A highly personalized first sentence for a cold email positioning you as a Custom Software Agency that can build complex tech solutions for their specific business model.",
     }
   },
   required: ["isRealBusiness", "summary", "businessType", "recommendedSoftware", "outreachSentence"],
@@ -67,8 +67,8 @@ Technologies Used: ${data.technologies.length > 0 ? data.technologies.join(', ')
 Has Newsletter: ${data.newsletter ? 'Yes' : 'No'}
 Payment Provider: ${data.paymentProvider || 'None identified'}
 
-Please analyze this data to determine if they are running a real business and how custom software could help them.
-Generate a personalized first outreach sentence to start a conversation with them about building custom software.
+Please analyze this data to determine if they are running a real business with sufficient complexity/revenue to afford a high-ticket Custom Software Development Agency (minimum $10k+ budget). 
+Generate a personalized first outreach sentence to pitch them on building custom enterprise software, mobile apps, or complex automations.
     `;
 
     const response = await ai.models.generateContent({
