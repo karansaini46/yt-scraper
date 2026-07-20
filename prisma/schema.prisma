@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Channel {
+  id               String   @id // channelId
+  channelName      String
+  description      String
+  subscriberCount  Int
+  videoCount       Int
+  country          String?
+  website          String?
+  latestUploadDate DateTime
+  channelUrl       String
+  
+  // New Scraper Fields
+  businessEmail    String?
+  productsSold     String[] // Array of strings (e.g., ["Courses", "SaaS"])
+  technologies     String[] // Array of strings (e.g., ["Stripe", "Next.js"])
+  socialLinks      Json?    // Key-value pair (e.g., { "twitter": "...", "github": "..." })
+  newsletter       Boolean  @default(false)
+  paymentProvider  String?
+  contactPageUrl   String?
+  
+  // AI Analysis Fields
+  businessScore       Int?
+  aiSummary           String?
+  businessType        String?
+  recommendedSoftware String[]
+  outreachLine        String?
+  isRealBusiness      Boolean?
+  aiAnalyzedAt        DateTime?
+  
+  scrapedAt        DateTime?
+  exportedAt       DateTime?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
