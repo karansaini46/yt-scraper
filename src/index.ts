@@ -10,40 +10,48 @@ import { Channel } from '@prisma/client';
 
 export async function runPipeline() {
   try {
-    logger.info('Initializing Creator Lead Finder pipeline...');
+    logger.info('═══════════════════════════════════════════════════');
+    logger.info('🚀 Initializing Creator Lead Finder pipeline...');
+    logger.info('═══════════════════════════════════════════════════');
     
-    // 1. YouTube Discovery Phase
+    // ─── PHASE 1: YouTube Discovery ────────────────────────────
     await withRetry(async () => {
-      logger.info('Running Discovery Phase...');
+      logger.info('📡 Phase 1/5: YouTube Discovery...');
       await runDiscoveryJob();
     }, 3, 5000);
     
-    // 2. Web Crawling Phase
+    // ─── PHASE 2: Web Scraping (batch of 100) ──────────────────
     await withRetry(async () => {
-      logger.info('Running Scraping Phase...');
-      await runScrapingJob(50);
+      logger.info('🌐 Phase 2/5: Web Scraping (batch of 100)...');
+      await runScrapingJob(100);
     }, 3, 5000);
-    
-    // 3. AI Analysis & Scoring Phase
+
+    logger.info('═══════════════════════════════════════════════════');
+    logger.info('📦 100 leads scraped. Starting AI verification...');
+    logger.info('═══════════════════════════════════════════════════');
+
+    // ─── PHASE 3: AI Verification with Key Rotation ────────────
     await withRetry(async () => {
-      logger.info('Running Analyzer Phase...');
+      logger.info('🤖 Phase 3/5: AI Verification (multi-key rotation)...');
       await runAnalyzerJob();
     }, 3, 5000);
     
-    // 4. Export & Reporting Phase
+    // ─── PHASE 4: Export & Reporting ───────────────────────────
     let exportedChannels: Channel[] = [];
     await withRetry(async () => {
-      logger.info('Running Exporter Phase...');
+      logger.info('📊 Phase 4/5: Export & Reporting...');
       exportedChannels = await runExporterJob();
     }, 3, 2000);
 
-    // 5. Telegram Notification Phase
+    // ─── PHASE 5: Telegram Notification ────────────────────────
     await withRetry(async () => {
-      logger.info('Running Telegram Notification Phase...');
+      logger.info('📲 Phase 5/5: Telegram Notification...');
       await runTelegramJob(exportedChannels);
     }, 3, 2000);
     
-    logger.info('Pipeline completed successfully.');
+    logger.info('═══════════════════════════════════════════════════');
+    logger.info('✅ Pipeline completed successfully.');
+    logger.info('═══════════════════════════════════════════════════');
   } catch (error) {
     logger.error('An error occurred during pipeline execution:', error);
   } finally {

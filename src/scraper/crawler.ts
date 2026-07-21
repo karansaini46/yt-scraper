@@ -11,6 +11,8 @@ export interface CrawlResult {
   newsletter: boolean;
   paymentProvider: string | null;
   contactPageUrl: string | null;
+  revenueSignals: string[];
+  painPoints: string[];
 }
 
 export async function crawlCreatorWebsite(websiteUrl: string): Promise<CrawlResult> {
@@ -21,7 +23,9 @@ export async function crawlCreatorWebsite(websiteUrl: string): Promise<CrawlResu
     socialLinks: {},
     newsletter: false,
     paymentProvider: null,
-    contactPageUrl: null
+    contactPageUrl: null,
+    revenueSignals: [],
+    painPoints: [],
   };
 
   let baseUrl = websiteUrl;
@@ -50,6 +54,8 @@ export async function crawlCreatorWebsite(websiteUrl: string): Promise<CrawlResu
   let allEmails: string[] = [...homepageData.emails];
   let allProducts: string[] = [...homepageData.products];
   let allTechnologies: string[] = [...homepageData.technologies];
+  let allRevenueSignals: string[] = [...homepageData.revenueSignals];
+  let allPainPoints: string[] = [...homepageData.painPoints];
   result.socialLinks = { ...homepageData.socialLinks };
   result.newsletter = homepageData.newsletter;
   result.paymentProvider = homepageData.paymentProvider;
@@ -80,6 +86,8 @@ export async function crawlCreatorWebsite(websiteUrl: string): Promise<CrawlResu
       allEmails = [...allEmails, ...subpageData.emails];
       allProducts = [...allProducts, ...subpageData.products];
       allTechnologies = [...allTechnologies, ...subpageData.technologies];
+      allRevenueSignals = [...allRevenueSignals, ...subpageData.revenueSignals];
+      allPainPoints = [...allPainPoints, ...subpageData.painPoints];
       
       // Merge social links
       result.socialLinks = { ...result.socialLinks, ...subpageData.socialLinks };
@@ -93,9 +101,11 @@ export async function crawlCreatorWebsite(websiteUrl: string): Promise<CrawlResu
   allEmails = [...new Set(allEmails)];
   result.productsSold = [...new Set(allProducts)];
   result.technologies = [...new Set(allTechnologies)];
+  result.revenueSignals = [...new Set(allRevenueSignals)];
+  result.painPoints = [...new Set(allPainPoints)];
   
   result.businessEmail = pickBestBusinessEmail(allEmails, baseUrl);
   
-  logger.info(`Crawl complete for ${baseUrl}. Found email: ${result.businessEmail ? 'Yes' : 'No'}`);
+  logger.info(`Crawl complete for ${baseUrl}. Email: ${result.businessEmail ? 'Yes' : 'No'} | Revenue Signals: ${result.revenueSignals.length} | Pain Points: ${result.painPoints.length}`);
   return result;
 }

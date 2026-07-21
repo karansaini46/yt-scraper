@@ -34,6 +34,13 @@ model Channel {
   outreachLine        String?
   isRealBusiness      Boolean?
   aiAnalyzedAt        DateTime?
+
+  // Enhanced Qualification Fields
+  leadTier            String?   // A, B, C, D
+  estimatedBudget     String?   // Budget range string
+  qualificationReason String?   // Why qualified/disqualified
+  revenueSignals      String[]  // Business signals found on website
+  painPoints          String[]  // Operational pain points detected
   
   scrapedAt        DateTime?
   exportedAt       DateTime?

@@ -1,23 +1,64 @@
 import { searchChannelsByKeyword, getChannelDetails, getLatestVideo } from './client';
-import { extractWebsiteFromDescription, meetsSubscriberCriteria, meetsUploadDateCriteria } from './filter';
+import { extractWebsiteFromDescription, meetsSubscriberCriteria, meetsUploadDateCriteria, isEducatorChannel, hasBusinessSignals, isJunkWebsite } from './filter';
 import { logger } from '../utils/logger';
-import { Channel } from '@prisma/client';
 
+// ─── OPTIMIZED KEYWORDS ─────────────────────────────────────────────────────
+// Target channels run by BUSINESS OWNERS, not educators/tutorial channels.
+// These keywords find people who are sharing their business journey,
+// not teaching how to code or do marketing.
 export const SEARCH_KEYWORDS = [
-  "B2B SaaS",
-  "E-commerce Strategy",
-  "Real Estate Investing",
-  "Fintech",
-  "Healthtech",
-  "Enterprise Software",
-  "Logistics Business",
-  "Manufacturing Tech",
-  "Startup Funding",
-  "Agency Growth"
+  // Business owners documenting their journey
+  "my ecommerce brand journey",
+  "scaling my business to 7 figures",
+  "behind the scenes of my company",
+  "how I built my business",
+  "my SaaS startup journey",
+  "day in the life of a CEO",
+  "how I run my ecommerce store",
+  "my agency journey",
+  "growing my brand",
+  "my product business",
+  "running a DTC brand",
+  "my Shopify store results",
+  "scaling my coaching business",
+
+  // Service business owners
+  "real estate agency marketing",
+  "gym owner business tips",
+  "dental practice growth",
+  "restaurant business owner",
+  "fitness brand owner",
+  "clinic business growth",
+  "law firm marketing",
+
+  // Tech-forward business owners (NOT educators)
+  "SaaS founder journey",
+  "bootstrapped startup",
+  "my app business",
+  "building a tech company",
+  "startup founder vlog",
+
+  // High-revenue niche businesses
+  "Amazon FBA brand",
+  "dropshipping brand results",
+  "franchise owner",
+  "property management business",
+  "construction company owner",
+  "manufacturing business owner",
 ];
 
-// Define a type for the data we collect before saving to DB
-export type DiscoveredChannel = Omit<Channel, 'createdAt' | 'updatedAt'>;
+// Define a type for the data we collect during discovery (subset of Channel fields)
+export interface DiscoveredChannel {
+  id: string;
+  channelName: string;
+  description: string;
+  subscriberCount: number;
+  videoCount: number;
+  country: string | null;
+  website: string;
+  latestUploadDate: Date;
+  channelUrl: string;
+}
 
 export async function discoverChannels(keyword: string, maxPages = 1): Promise<DiscoveredChannel[]> {
   logger.info(`Starting discovery for keyword: ${keyword}`);
@@ -48,13 +89,19 @@ export async function discoverChannels(keyword: string, maxPages = 1): Promise<D
 
       logger.debug(`Evaluating channel: ${title} (${id})`);
 
-      // Filter: Subscribers
+      // Filter 1: Subscribers
       if (!meetsSubscriberCriteria(subscriberCount)) {
         logger.debug(`Skipping ${title}: Subscriber count ${subscriberCount} out of bounds.`);
         continue;
       }
 
-      // Filter: Website existence
+      // Filter 2: EDUCATOR BLOCKLIST — reject tutorial/coding channels
+      if (isEducatorChannel(description, title)) {
+        logger.info(`🚫 Blocked educator channel: ${title}`);
+        continue;
+      }
+
+      // Filter 3: Website existence
       const websiteFromBranding = brandingSettings?.channel?.unpluggedTrailingLink;
       const websiteFromDescription = extractWebsiteFromDescription(description);
       const website = websiteFromBranding || websiteFromDescription;
@@ -64,7 +111,13 @@ export async function discoverChannels(keyword: string, maxPages = 1): Promise<D
         continue;
       }
 
-      // Filter: Latest upload date (API calls are expensive, do this last)
+      // Filter 4: Reject junk websites (linktree, buymeacoffee, etc.)
+      if (isJunkWebsite(website)) {
+        logger.info(`🚫 Skipping ${title}: Junk website (${website})`);
+        continue;
+      }
+
+      // Filter 5: Latest upload date (API calls are expensive, do this last)
       const latestUploadDateISO = await getLatestVideo(id);
       if (!latestUploadDateISO) {
         logger.debug(`Skipping ${title}: Could not fetch latest video.`);
@@ -76,9 +129,15 @@ export async function discoverChannels(keyword: string, maxPages = 1): Promise<D
         continue;
       }
 
-      // Passed all filters!
-      logger.info(`✅ Found qualified lead: ${title} (${id})`);
+      // Check for business signals (bonus, not a hard filter — let AI decide)
+      const hasBizSignals = hasBusinessSignals(description);
+      if (hasBizSignals) {
+        logger.info(`✅ Found qualified lead with business signals: ${title} (${id})`);
+      } else {
+        logger.info(`⚠️  Found lead (no explicit business signals): ${title} (${id})`);
+      }
       
+      // Passed all filters!
       discovered.push({
         id,
         channelName: title,

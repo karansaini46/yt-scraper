@@ -2,7 +2,7 @@ import { prisma } from '../db/prisma';
 import { crawlCreatorWebsite } from './crawler';
 import { logger } from '../utils/logger';
 
-export async function runScrapingJob(batchSize = 10) {
+export async function runScrapingJob(batchSize = 100) {
   logger.info('Starting web scraping job');
 
   // Find channels that have a website but haven't been scraped yet
@@ -19,12 +19,18 @@ export async function runScrapingJob(batchSize = 10) {
     return;
   }
 
-  logger.info(`Found ${channelsToScrape.length} websites to scrape.`);
+  const total = channelsToScrape.length;
+  logger.info(`📦 Found ${total} websites to scrape (batch size: ${batchSize}).`);
+
+  let completed = 0;
 
   for (const channel of channelsToScrape) {
     try {
       if (!channel.website) continue;
       
+      completed++;
+      logger.info(`🌐 Scraping ${completed}/${total}: ${channel.channelName} (${channel.website})`);
+
       const result = await crawlCreatorWebsite(channel.website);
       
       await prisma.channel.update({
@@ -37,16 +43,18 @@ export async function runScrapingJob(batchSize = 10) {
           newsletter: result.newsletter,
           paymentProvider: result.paymentProvider,
           contactPageUrl: result.contactPageUrl,
+          revenueSignals: result.revenueSignals,
+          painPoints: result.painPoints,
           scrapedAt: new Date(),
         },
       });
       
-      logger.info(`Successfully updated database for channel: ${channel.channelName}`);
+      logger.info(`✅ [${completed}/${total}] Scraped: ${channel.channelName}`);
     } catch (error: any) {
-      logger.error({ error: error.message }, `Error processing scraping for channel: ${channel.id}`);
+      completed++;
+      logger.error({ error: error.message }, `❌ [${completed}/${total}] Error scraping: ${channel.channelName}`);
       
       // Mark as scraped so we don't infinitely retry failed ones immediately in the next batch
-      // Alternatively, we could add a `scrapeError` column
       await prisma.channel.update({
         where: { id: channel.id },
         data: { scrapedAt: new Date() },
@@ -54,5 +62,5 @@ export async function runScrapingJob(batchSize = 10) {
     }
   }
   
-  logger.info('Finished web scraping job');
+  logger.info(`📦 Scraping batch complete: ${completed}/${total} processed. Ready for AI verification.`);
 }

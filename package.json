@@ -13,6 +13,8 @@
   "license": "ISC",
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/figlet": "^1.7.0",
+    "@types/gradient-string": "^1.1.6",
     "@types/node": "^26.1.1",
     "@types/node-telegram-bot-api": "^0.64.15",
     "@types/pdfkit": "^0.17.6",
@@ -31,7 +33,9 @@
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
+    "figlet": "^1.11.2",
     "form-data": "^4.0.6",
+    "gradient-string": "^3.0.0",
     "node-telegram-bot-api": "^1.2.0",
     "pdfkit": "^0.19.1",
     "pdfkit-table": "^0.2.11",
