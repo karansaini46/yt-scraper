@@ -198,7 +198,7 @@ export class GeminiKeyPool {
           // Continue the loop to retry with the new key
         } else {
           // Non-rate-limit error — don't rotate, just fail
-          logger.error('Gemini API error (non-rate-limit):', error);
+          logger.error({ err: error }, 'Gemini API error (non-rate-limit)');
           return null;
         }
       }

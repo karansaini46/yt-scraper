@@ -1,6 +1,7 @@
 import { searchChannelsByKeyword, getChannelDetails, getLatestVideo } from './client';
 import { extractWebsiteFromDescription, meetsSubscriberCriteria, meetsUploadDateCriteria, isEducatorChannel, hasBusinessSignals, isJunkWebsite } from './filter';
 import { logger } from '../utils/logger';
+import { prisma } from '../db/prisma';
 
 // ─── OPTIMIZED KEYWORDS ─────────────────────────────────────────────────────
 // Target channels run by BUSINESS OWNERS, not educators/tutorial channels.
@@ -74,10 +75,27 @@ export async function discoverChannels(keyword: string, maxPages = 1): Promise<D
       break;
     }
 
-    const channelIds = searchResponse.items.map(item => item.id.channelId);
+    const rawChannelIds = searchResponse.items.map(item => item.id.channelId);
     
-    // Process in chunks of 50 (API limit for channels.list)
-    const detailsResponse = await getChannelDetails(channelIds);
+    // Check which of these channels we already have in our database to prevent re-processing
+    // This saves massive amounts of YouTube API quota.
+    const existingChannels = await prisma.channel.findMany({
+      where: { id: { in: rawChannelIds } },
+      select: { id: true }
+    });
+    const existingIds = new Set(existingChannels.map(c => c.id));
+    
+    const newChannelIds = rawChannelIds.filter(id => !existingIds.has(id));
+
+    if (newChannelIds.length === 0) {
+      logger.info(`All ${rawChannelIds.length} channels from this page are already in the database. Skipping to save quota.`);
+      pageToken = searchResponse.nextPageToken;
+      if (!pageToken) break;
+      continue;
+    }
+    
+    // Process the new channels
+    const detailsResponse = await getChannelDetails(newChannelIds);
     if (!detailsResponse || !detailsResponse.items) {
       continue;
     }
@@ -111,11 +129,8 @@ export async function discoverChannels(keyword: string, maxPages = 1): Promise<D
         continue;
       }
 
-      // Filter 4: Reject junk websites (linktree, buymeacoffee, etc.)
-      if (isJunkWebsite(website)) {
-        logger.info(`🚫 Skipping ${title}: Junk website (${website})`);
-        continue;
-      }
+      // Filter 4: Junk websites (Linktree, etc.) are now ALLOWED, 
+      // so we no longer block them here. The AI will judge if they are valid.
 
       // Filter 5: Latest upload date (API calls are expensive, do this last)
       const latestUploadDateISO = await getLatestVideo(id);

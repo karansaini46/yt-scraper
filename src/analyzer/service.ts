@@ -100,6 +100,6 @@ export async function runAnalyzerJob() {
     logger.info(`✅ AI Verification complete: ${completed}/${total} processed | ${failed} failed`);
     logger.info('AI Analyzer Job completed successfully.');
   } catch (error) {
-    logger.error('Error during AI Analyzer Job:', error);
+    logger.error({ err: error }, 'Error during AI Analyzer Job');
   }
 }

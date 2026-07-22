@@ -19,12 +19,14 @@ export class TelegramClient {
       await axios.post(`${this.baseUrl}/sendMessage`, {
         chat_id: config.CHAT_ID,
         text,
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
       });
       logger.debug('Successfully sent text message to Telegram.');
     } catch (error: any) {
-      logger.error('Failed to send Telegram message:', error.response?.data || error.message);
-      throw error;
+      const errorDetail = error.response?.data?.description || error.message || String(error);
+      logger.error(`Failed to send Telegram message: ${errorDetail}`);
+      throw new Error(`Telegram sendMessage failed: ${errorDetail}`);
     }
   }
 
@@ -49,13 +51,17 @@ export class TelegramClient {
         headers: {
           ...form.getHeaders(),
         },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
       });
       logger.debug(`Successfully sent document ${filePath} to Telegram.`);
     } catch (error: any) {
-      logger.error('Failed to send Telegram document:', error.response?.data || error.message);
-      throw error;
+      const errorDetail = error.response?.data?.description || error.message || String(error);
+      logger.error(`Failed to send Telegram document (${filePath}): ${errorDetail}`);
+      throw new Error(`Telegram sendDocument failed: ${errorDetail}`);
     }
   }
 }
 
 export const telegramClient = new TelegramClient();
+

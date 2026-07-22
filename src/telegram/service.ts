@@ -6,6 +6,13 @@ import * as fs from 'fs';
 
 import { Channel } from '@prisma/client';
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 export async function runTelegramJob(channels: Channel[]) {
   logger.info('Starting Telegram Reporting Job...');
 
@@ -19,31 +26,40 @@ export async function runTelegramJob(channels: Channel[]) {
 
     // 2. Construct Message
     if (totalCreators === 0) {
-      const msg = `*Creator Lead Finder Report - ${dateStr}*\n\nPipeline execution completed.\n\n❌ *No qualified leads found this run.*\n\nAll leads were filtered out by the quality gate (Score ≥ 40, Tier A/B, Real Business only).`;
+      const msg = `<b>Creator Lead Finder Report - ${dateStr}</b>\n\nPipeline execution completed.\n\n❌ <b>No qualified leads found this run.</b>\n\nAll leads were filtered out by the quality gate (Score ≥ 40, Tier A/B, Real Business only).`;
       await telegramClient.sendMessage(msg);
       logger.info('Sent no-qualified-leads message to Telegram.');
       return;
     }
 
-    let msg = `*🔥 Creator Lead Finder Report - ${dateStr}*\n\n`;
-    msg += `*Qualified Leads Found: ${totalCreators}*\n`;
+    let msg = `<b>🔥 Creator Lead Finder Report - ${dateStr}</b>\n\n`;
+    msg += `<b>Qualified Leads Found: ${totalCreators}</b>\n`;
     msg += `🔥 Tier A (High-Ticket): ${tierA}\n`;
     msg += `✅ Tier B (Solid Potential): ${tierB}\n\n`;
     
-    msg += `*Top Leads:*\n`;
+    msg += `<b>Top Leads:</b>\n`;
     
-    // Show all qualified leads (they're already filtered)
-    channels.slice(0, 15).forEach((c, i) => {
+    // Show top qualified leads (safely chunked under Telegram 4096 char limit)
+    let leadCount = 0;
+    for (let i = 0; i < channels.length && i < 15; i++) {
+      const c = channels[i];
+      if (!c) continue;
       const tierEmoji = c.leadTier === 'A' ? '🔥' : '✅';
-      const budget = c.estimatedBudget || 'Unknown';
-      msg += `${i + 1}. ${tierEmoji} *${c.channelName}* (Score: ${c.businessScore}, Budget: ${budget})\n`;
-      if (c.qualificationReason) {
-        msg += `   _${c.qualificationReason}_\n`;
-      }
-    });
+      const budget = escapeHtml(c.estimatedBudget || 'Unknown');
+      const channelName = escapeHtml(c.channelName || 'Unknown Channel');
+      const leadLine = `${i + 1}. ${tierEmoji} <b>${channelName}</b> (Score: ${c.businessScore ?? 0}, Budget: ${budget})\n`;
+      const reasonLine = c.qualificationReason ? `   <i>${escapeHtml(c.qualificationReason)}</i>\n` : '';
 
-    if (channels.length > 15) {
-      msg += `\n...and ${channels.length - 15} more in the attached reports.`;
+      if ((msg + leadLine + reasonLine).length > 3900) {
+        break;
+      }
+
+      msg += leadLine + reasonLine;
+      leadCount++;
+    }
+
+    if (channels.length > leadCount) {
+      msg += `\n...and ${channels.length - leadCount} more in the attached reports.`;
     }
 
     await telegramClient.sendMessage(msg);
@@ -55,15 +71,27 @@ export async function runTelegramJob(channels: Channel[]) {
     const pdfPath = path.resolve(process.cwd(), 'creator-leads.pdf');
 
     if (fs.existsSync(mdPath)) {
-      await telegramClient.sendDocument(mdPath, 'Markdown Report');
+      try {
+        await telegramClient.sendDocument(mdPath, 'Markdown Report');
+      } catch (err: any) {
+        logger.error(`Failed to send Markdown report to Telegram: ${err.message || String(err)}`);
+      }
     }
     
     if (fs.existsSync(excelPath)) {
-      await telegramClient.sendDocument(excelPath, 'Excel Report');
+      try {
+        await telegramClient.sendDocument(excelPath, 'Excel Report');
+      } catch (err: any) {
+        logger.error(`Failed to send Excel report to Telegram: ${err.message || String(err)}`);
+      }
     }
 
     if (fs.existsSync(pdfPath)) {
-      await telegramClient.sendDocument(pdfPath, 'PDF Report');
+      try {
+        await telegramClient.sendDocument(pdfPath, 'PDF Report');
+      } catch (err: any) {
+        logger.error(`Failed to send PDF report to Telegram: ${err.message || String(err)}`);
+      }
     }
 
     // 4. Cleanup: Delete the local files after sending
@@ -72,16 +100,17 @@ export async function runTelegramJob(channels: Channel[]) {
         try {
           fs.unlinkSync(filePath);
           logger.debug(`Deleted temporary file: ${filePath}`);
-        } catch (err) {
-          logger.error(`Failed to delete temporary file ${filePath}:`, err);
+        } catch (err: any) {
+          logger.error(`Failed to delete temporary file ${filePath}: ${err?.message || String(err)}`);
         }
       }
     });
 
     logger.info('Telegram Reporting Job completed successfully.');
-  } catch (error) {
-    logger.error('Error during Telegram Reporting Job:', error);
+  } catch (error: any) {
+    logger.error(`Error during Telegram Reporting Job: ${error?.message || String(error)}`);
     // Re-throw so index.ts knows it failed
     throw error;
   }
 }
+

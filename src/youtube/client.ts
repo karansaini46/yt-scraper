@@ -98,8 +98,9 @@ export async function getLatestVideo(channelId: string): Promise<string | null> 
       },
     });
     
-    if (response.data.items && response.data.items.length > 0) {
-      return response.data.items[0].snippet.publishedAt;
+    const item = response.data.items?.[0];
+    if (item?.snippet?.publishedAt) {
+      return item.snippet.publishedAt;
     }
     return null;
   } catch (error: any) {

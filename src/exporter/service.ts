@@ -28,11 +28,19 @@ export async function runExporterJob(): Promise<Channel[]> {
     }
 
     // ═══ QUALITY GATE: Only export qualified leads ═══
+    const ALLOWED_COUNTRIES = [
+      'US', 'GB', 'UK',
+      // Europe
+      'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+      'CH', 'NO', 'IS', 'LI'
+    ];
     const qualifiedChannels = allAnalyzed.filter(c => {
       const meetsScoreThreshold = (c.businessScore ?? 0) >= MINIMUM_EXPORT_SCORE;
       const meetsLeadTier = c.leadTier ? QUALIFIED_TIERS.includes(c.leadTier.toUpperCase()) : false;
       const isRealBiz = c.isRealBusiness === true;
-      return meetsScoreThreshold && meetsLeadTier && isRealBiz;
+      const isAllowedCountry = !c.country || ALLOWED_COUNTRIES.includes(c.country.toUpperCase());
+      
+      return meetsScoreThreshold && meetsLeadTier && isRealBiz && isAllowedCountry;
     });
 
     const rejectedCount = allAnalyzed.length - qualifiedChannels.length;
@@ -86,7 +94,7 @@ export async function runExporterJob(): Promise<Channel[]> {
     logger.info('Exporter Job completed successfully.');
     return uniqueChannels;
   } catch (error) {
-    logger.error('Error during Exporter Job:', error);
+    logger.error({ err: error }, 'Error during Exporter Job');
     return [];
   }
 }

@@ -37,7 +37,7 @@ const responseSchema = {
   properties: {
     isRealBusiness: {
       type: Type.BOOLEAN,
-      description: "True ONLY if this creator is running a legitimate business that has real operational complexity and likely $10k+ budget for custom software. False for educators, tutorial channels, solo content creators, or anyone whose only revenue is YouTube ads + affiliate links.",
+      description: "True if this creator is running a legitimate business, is a rapidly growing solo creator, or runs a business using link-in-bio tools. False ONLY for purely educational/tutorial channels or completely irrelevant content.",
     },
     summary: {
       type: Type.STRING,
@@ -49,11 +49,11 @@ const responseSchema = {
     },
     leadTier: {
       type: Type.STRING,
-      description: "Lead quality tier: 'A' = high-ticket prospect with clear software needs and budget ($20k+), 'B' = solid potential with some software needs ($5k-$20k), 'C' = low probability, might need nurturing, 'D' = disqualify (educator, solo creator, no budget, no need).",
+      description: "Lead quality tier: 'A' = high-ticket prospect or rapidly growing creator who can pay for a website/software, 'B' = solid potential with some software needs, 'C' = low probability, 'D' = disqualify (educator, irrelevant).",
     },
     estimatedBudget: {
       type: Type.STRING,
-      description: "Estimated software development budget based on business size/type: 'Under $5k (DISQUALIFY)', '$5k-$20k', '$20k-$50k', '$50k+'. Be realistic based on the business indicators.",
+      description: "Estimated budget based on their audience size or business signals (e.g., 'Unknown', '$1k-$5k', '$5k+').",
     },
     qualificationReason: {
       type: Type.STRING,
@@ -83,23 +83,15 @@ You are a STRICT lead qualification expert for a Custom Software Development Age
 DISQUALIFY IMMEDIATELY (Lead Tier = D) if ANY of these are true:
 ═══════════════════════════════════════════════════════
 - This is a YouTube educator or tutorial channel (teaches coding, marketing, business concepts)
-- Their only revenue is courses, templates, PDFs, or ebooks under $500
-- They have no real website (just linktree, buymeacoffee, gumroad, or stan.store)
-- They are a solo content creator with no team or business infrastructure
-- Their "business" is just YouTube ad revenue + affiliate links + sponsorships
-- They teach how to do something rather than running a business that does it
 - They are a tech reviewer, news channel, or commentary channel
 
 ═══════════════════════════════════════════════════════
 QUALIFY (Lead Tier A or B) ONLY if:
 ═══════════════════════════════════════════════════════
-- They run an ACTUAL business: e-commerce store, agency, clinic, restaurant, 
-  SaaS product, coaching firm with $5k+ packages, real estate brokerage, 
-  fitness franchise, dental practice, law firm, construction company, etc.
-- They have operational complexity that requires custom software
-- They likely have budget ($10k+) based on their business size and type
-- There's a SPECIFIC software problem you could solve for them
-- They have a real business website with pricing, team pages, case studies, etc.
+- They run an ACTUAL business (e-commerce, agency, clinic, SaaS, real estate, etc.)
+- OR they are a rapidly growing solo content creator who could pay for a custom website or software tools
+- They use Linktree, Gumroad, Stan.store, or BuyMeACoffee (these are VALID and should be qualified if they have an audience)
+- There is a software problem you could solve for them or a custom website they need
 
 ═══════════════════════════════════════════════════════
 ANALYZE THIS CREATOR:
@@ -137,7 +129,7 @@ Be BRUTALLY HONEST in your qualification. A bad lead wastes everyone's time.
     const result = JSON.parse(responseText) as AIAnalysisResult;
     return result;
   } catch (error) {
-    logger.error('Failed to analyze creator profile with AI:', error);
+    logger.error({ err: error }, 'Failed to analyze creator profile with AI');
     return null;
   }
 }

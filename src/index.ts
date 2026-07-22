@@ -53,7 +53,7 @@ export async function runPipeline() {
     logger.info('✅ Pipeline completed successfully.');
     logger.info('═══════════════════════════════════════════════════');
   } catch (error) {
-    logger.error('An error occurred during pipeline execution:', error);
+    logger.error({ err: error }, 'An error occurred during pipeline execution');
   } finally {
     await prisma.$disconnect();
   }

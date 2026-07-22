@@ -9,6 +9,11 @@ import gradient from 'gradient-string';
 // Initialize Telegram Bot in Polling Mode
 const bot = new TelegramBot(config.BOT_TOKEN, { polling: true });
 
+// Handle polling errors to prevent unhandled rejections/crashes
+bot.on('polling_error', (error) => {
+  logger.error(`Telegram Bot Polling Error: ${error.message}`);
+});
+
 // Track if a pipeline run is currently in progress
 let isRunning = false;
 

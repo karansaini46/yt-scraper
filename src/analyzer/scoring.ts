@@ -56,8 +56,6 @@ export function calculateBusinessScore(
   // AI: Is a real business
   if (aiIsRealBusiness) {
     score += 15;
-  } else {
-    score -= 30;
   }
 
   // AI: Lead Tier
@@ -79,8 +77,6 @@ export function calculateBusinessScore(
     const isCustomDomain = !['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com']
       .some(d => factors.businessEmail!.includes(d));
     score += isCustomDomain ? 10 : 3;
-  } else {
-    score -= 5;
   }
 
   // ═══ BUSINESS INFRASTRUCTURE ═══
@@ -164,18 +160,8 @@ export function calculateBusinessScore(
     score += 10;
   }
 
-  // ═══ PENALTIES ═══
-
-  // Only sells courses/templates with no other business
-  const hasLowTicket = lowerProducts.some(p => 
-    p.includes('template') || p.includes('course') || p.includes('digital products')
-  );
-  const hasRealBusiness = hasSaaS || hasB2B || hasEcommerce || 
-    lowerProducts.some(p => p.includes('consulting') || p.includes('agency'));
-  
-  if (hasLowTicket && !hasRealBusiness) {
-    score -= 25;
-  }
+  // Removed the rigid penalty for low ticket / no business infrastructure
+  // to allow rapidly growing solo creators.
 
   // Clamp between -100 and 100
   return Math.max(-100, Math.min(score, 100));
